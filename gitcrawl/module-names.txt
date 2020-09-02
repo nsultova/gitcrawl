@@ -1,0 +1,4 @@
+cv2 opencv
+sklearn scikit-learn
+skimage scikit-image
+torch pytorch

@@ -1,0 +1,10 @@
+!/.gitignore
+.DS_Store
+README.md~
+.vscode/
+
+__pycache__/
+*.pyc
+*.egg-info
+dist/
+build/

@@ -1,0 +1,7 @@
+beautifulsoup4
+tqdm
+requests
+PyYAML
+requirements-parser
+pip-search
+findimports

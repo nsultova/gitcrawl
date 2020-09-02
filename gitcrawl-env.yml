@@ -1,0 +1,17 @@
+name: gitcrawl-env
+channels:
+- conda-forge
+- anaconda
+dependencies:
+- python=3.8.5
+- numpy
+- pip
+- beautifulsoup4
+- tqdm
+- requests
+- requirements-parser
+- setuptools
+- yaml
+- pip:
+  - findimports
+  - pip-search
