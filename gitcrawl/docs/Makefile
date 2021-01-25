@@ -22,4 +22,5 @@ help:
 github:
 	@make html
 	@mkdir -p ../../docs
-	@cp -a _build/html/. ../../docs
+	@touch ../../docs/.nojekyll
+	@cp -a -R _build/html/. ../../docs
