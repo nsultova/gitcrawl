@@ -1,5 +1,5 @@
 """
-Skript containing various additional helper functions
+Script containing various additional helper functions
 """
 import pkgutil
 import os

@@ -260,7 +260,7 @@ def create_env(conda_lst, pip_lst, env_name, channel_lst):
 	env_name : str
 		name of the resulting environment.yml
 	channel_lst : list
-		list of conda-channles that are to be searched
+		list of conda-channels that are to be searched
 	"""
 	dependencies = conda_lst
 	name = env_name
