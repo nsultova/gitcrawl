@@ -106,7 +106,7 @@ The code is designed in a heavily interactive way. If you're lazy you can set th
 
 ## Workflow
 
-![Workflow chart](./imgs/workflow.png)
+<img src="https://raw.githubusercontent.com/nsultova/gitcrawl/master/imgs/workflow.png" width="50%">
 
 ## Notes
 
