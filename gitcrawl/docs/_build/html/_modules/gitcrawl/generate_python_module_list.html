@@ -1,0 +1,182 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>gitcrawl.generate_python_module_list &#8212; gitcrawl-docs  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for gitcrawl.generate_python_module_list</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script needs to be executed only when a new python version has appeared.</span>
+<span class="sd">chmod +x has been set</span>
+
+<span class="sd">Execution:</span>
+<span class="sd">$ ./generate_python_module_list.py</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+<span class="kn">from</span> <span class="nn">sys</span> <span class="kn">import</span> <span class="n">version</span>
+<span class="kn">from</span> <span class="nn">bs4</span> <span class="kn">import</span> <span class="n">BeautifulSoup</span>
+<span class="kn">import</span> <span class="nn">requests</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+
+<div class="viewcode-block" id="write_modules_list"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.generate_python_module_list.write_modules_list">[docs]</a><span class="k">def</span> <span class="nf">write_modules_list</span><span class="p">(</span><span class="n">python_version</span><span class="o">=</span><span class="mf">3.10</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	This script parses https://docs.python.org/3.10/py-modindex.html# and creates a static list containing all the module names. </span>
+<span class="sd">	This list is used by determine_disjunct_module_names(src_rep) to compare against external modules within a given repository.</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	python_version : str</span>
+<span class="sd">		major+minor version e.g 3.7, 1.9, 3.10</span>
+<span class="sd">	&quot;&quot;&quot;</span>	
+	<span class="k">try</span><span class="p">:</span>
+		<span class="n">page</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;https://docs.python.org/</span><span class="si">{</span><span class="n">python_version</span><span class="si">}</span><span class="s1">/py-modindex.html#&#39;</span><span class="p">)</span>
+		<span class="n">page</span><span class="o">.</span><span class="n">raise_for_status</span><span class="p">()</span>
+
+	<span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">HTTPError</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+		<span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+	<span class="k">except</span> <span class="n">requests</span><span class="o">.</span><span class="n">exceptions</span><span class="o">.</span><span class="n">RequestException</span> <span class="k">as</span> <span class="n">err</span><span class="p">:</span>
+		<span class="c1">#catastrophic error. bail.</span>
+		<span class="k">raise</span> <span class="ne">SystemExit</span><span class="p">(</span><span class="n">err</span><span class="p">)</span>
+
+	<span class="n">content</span> <span class="o">=</span> <span class="n">page</span><span class="o">.</span><span class="n">text</span>
+
+	<span class="n">soup</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">content</span><span class="p">,</span> <span class="n">features</span><span class="o">=</span><span class="s2">&quot;html.parser&quot;</span><span class="p">)</span>
+	<span class="c1">#print(soup.prettify())</span>
+
+	<span class="c1">#Fancy regex that emerged _before reading the docs of bs4 ^^</span>
+	<span class="c1">#&lt;code class=&quot;xref&quot;&gt;\s*([\d\w_]+)\s*&lt;\/code&gt;</span>
+	<span class="n">pattern</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">find_all</span><span class="p">(</span><span class="s2">&quot;code&quot;</span><span class="p">,</span> <span class="s2">&quot;xref&quot;</span><span class="p">)</span>
+
+	<span class="n">modules_lst</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">pattern</span><span class="p">):</span>
+		<span class="c1">#print(f&quot;element :{elem}, i : {i}&quot;)</span>
+		<span class="c1">#This regex filters the module name out of the embeddings</span>
+		<span class="n">match</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">search</span><span class="p">(</span><span class="sa">r</span><span class="s1">&#39;(?P&lt;code0&gt;&lt;code class=&quot;xref&quot;&gt;)(?P&lt;modulename&gt;\s*([\d\w_.]+)\s*)(?P&lt;code1&gt;&lt;\/code&gt;)&#39;</span><span class="p">,</span> <span class="nb">str</span><span class="p">(</span><span class="n">elem</span><span class="p">))</span>
+		<span class="n">modulename</span> <span class="o">=</span> <span class="n">match</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="s1">&#39;modulename&#39;</span><span class="p">)</span>
+		<span class="n">modules_lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">modulename</span><span class="p">)</span>
+
+	<span class="c1">#with open(f&#39;python{python_version}-modules.txt&#39;, &#39;w&#39;) as f:</span>
+	<span class="c1">#	modules_lst = map(lambda x:x+&#39;\n&#39;, modules_lst)</span>
+	<span class="c1">#	f.writelines(modules_lst)</span>
+
+	<span class="c1"># append package name</span>
+	<span class="c1"># only include the module name, e.g only skimage instead of skimage.filters</span>
+	<span class="n">modules_lst</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">([</span> <span class="n">x</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">modules_lst</span><span class="p">]))</span>
+	<span class="n">pickle</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">modules_lst</span><span class="p">,</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;python_module_index.pickle&#39;</span><span class="p">,</span> <span class="s1">&#39;wb&#39;</span><span class="p">))</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+	
+	<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">								This script parses https://docs.python.org/3.10/py-modindex.html# </span>
+<span class="s1">								and creates a static list containing all the module names. </span>
+<span class="s1">												&#39;&#39;&#39;</span><span class="p">)</span>
+
+	<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-v&#39;</span><span class="p">,</span> <span class="s1">&#39;--version-number&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">str</span><span class="p">,</span>
+		<span class="n">help</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">				Provide a valid python version number. </span>
+<span class="s1">					Format: major+minor, e.g 3.7, 3.8, 3.10</span>
+<span class="s1">			&#39;&#39;&#39;</span><span class="p">)</span>
+	
+	<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+	<span class="n">v_num</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">version_number</span>
+
+	<span class="n">write_modules_list</span><span class="p">(</span><span class="n">v_num</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">gitcrawl-docs</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gitcrawl.html">gitcrawl package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Neda Sultova.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

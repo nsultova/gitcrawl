@@ -1,0 +1,217 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>gitcrawl.gitcrawl &#8212; gitcrawl-docs  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for gitcrawl.gitcrawl</h1><div class="highlight"><pre>
+<span></span><span class="ch">#!/usr/bin/env python3</span>
+<span class="c1"># -*- coding: utf-8 -*-</span>
+
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">tqdm</span>
+<span class="kn">import</span> <span class="nn">argparse</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">from</span> <span class="nn">.core_functions</span> <span class="kn">import</span> <span class="n">determine_disjunct_module_names</span><span class="p">,</span> <span class="n">search_conda_channel</span><span class="p">,</span> <span class="n">create_env</span><span class="p">,</span> <span class="n">search_pip</span>
+<span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">clean_list</span><span class="p">,</span> <span class="n">dir_path</span><span class="p">,</span> <span class="n">start_menu</span><span class="p">,</span> <span class="n">parse_requirements</span><span class="p">,</span><span class="n">replace_names</span>
+
+
+<div class="viewcode-block" id="main"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.gitcrawl.main">[docs]</a><span class="k">def</span> <span class="nf">main</span><span class="p">():</span>
+	<span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">													Extracts import statements from a python repository and returns a list of additionally added modules </span>
+<span class="s1">													(Future: creates a valid environment.yml file that can later be installed via conda and pip</span>
+<span class="s1">												&#39;&#39;&#39;</span><span class="p">)</span>
+
+	<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-s&#39;</span><span class="p">,</span> <span class="s1">&#39;--src-repository&#39;</span><span class="p">,</span> <span class="n">required</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="n">dir_path</span><span class="p">,</span>
+		<span class="n">help</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">				Provide a valid path to the source-code you want to parse e.g /path/to/my/src</span>
+<span class="s1">			&#39;&#39;&#39;</span><span class="p">)</span>
+
+	<span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s1">&#39;-l&#39;</span><span class="p">,</span> <span class="s1">&#39;--leave-me-alone&#39;</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s1">&#39;store_true&#39;</span><span class="p">,</span><span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+		<span class="n">help</span><span class="o">=</span><span class="s1">&#39;&#39;&#39;</span>
+<span class="s1">				Hides the decision query for each package/channel, sparing you a bit of interaction. </span>
+<span class="s1">				Good for lazy mode or for irritable moods.</span>
+<span class="s1">				Be aware that it takes definitely longer tho.</span>
+<span class="s1">			&#39;&#39;&#39;</span><span class="p">)</span>
+	
+	<span class="n">args</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_args</span><span class="p">()</span>
+	<span class="n">src_rep</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">src_repository</span>
+	<span class="n">leave_me_alone</span> <span class="o">=</span> <span class="n">args</span><span class="o">.</span><span class="n">leave_me_alone</span>
+
+	<span class="c1">#check if the repository contains a requirements.txt</span>
+	<span class="n">pip_packages</span> <span class="o">=</span> <span class="n">parse_requirements</span><span class="p">(</span><span class="n">src_rep</span><span class="p">)</span>
+
+	<span class="c1">#we might not need this due to default argument</span>
+	<span class="c1">#leave_me_alone = True if leave_me_alone else False</span>
+
+	<span class="n">channel_lst</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">name</span><span class="p">,</span> <span class="n">additional_channel_lst</span> <span class="o">=</span> <span class="n">start_menu</span><span class="p">()</span>
+	<span class="n">default_channel_lst</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;conda-forge&quot;</span><span class="p">,</span> <span class="s2">&quot;anaconda&quot;</span><span class="p">]</span>
+
+	<span class="k">if</span> <span class="n">additional_channel_lst</span><span class="p">:</span>
+		<span class="n">channel_lst</span> <span class="o">=</span> <span class="n">additional_channel_lst</span> <span class="o">+</span> <span class="n">default_channel_lst</span>
+	<span class="k">else</span><span class="p">:</span>
+		<span class="n">channel_lst</span> <span class="o">=</span> <span class="n">default_channel_lst</span>
+
+	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;channel_lst : </span><span class="si">{</span><span class="n">channel_lst</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+	<span class="c1"># disjunct_modules, same_modules = determine_added_modules(src_rep,python_version)</span>
+	<span class="n">disjunct_modules</span> <span class="o">=</span> <span class="n">determine_disjunct_module_names</span><span class="p">(</span><span class="n">src_rep</span><span class="p">)</span>
+
+	<span class="n">disjunct_modules</span> <span class="o">=</span> <span class="n">replace_names</span><span class="p">(</span><span class="n">disjunct_modules</span><span class="p">)</span>
+
+	<span class="k">if</span> <span class="n">pip_packages</span><span class="p">:</span>
+		<span class="n">disjunct_modules</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">disjunct_modules</span><span class="p">)</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="n">pip_packages</span><span class="p">))</span>
+
+	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Disjunct modules: </span><span class="si">{</span><span class="n">disjunct_modules</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+
+	<span class="c1"># For each module-name, determine installation candidates (if available)</span>
+	<span class="c1"># for now only one consider splitting for conda-forge/anaconda.</span>
+
+	<span class="n">conda_lst</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">pip_lst</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="n">module_not_found_lst</span> <span class="o">=</span> <span class="p">[]</span>
+
+	<span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">disjunct_modules</span><span class="p">):</span>
+		<span class="n">count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">channel_lst</span><span class="p">)</span>
+
+		<span class="k">for</span> <span class="n">channel</span> <span class="ow">in</span> <span class="n">channel_lst</span><span class="p">:</span>
+			<span class="n">pname</span><span class="p">,</span> <span class="n">skip</span> <span class="o">=</span> <span class="n">search_conda_channel</span><span class="p">(</span><span class="n">channel</span><span class="p">,</span> <span class="n">elem</span><span class="p">,</span> <span class="n">leave_me_alone</span><span class="p">)</span>
+			<span class="k">if</span> <span class="n">pname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+				<span class="n">conda_lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pname</span><span class="p">)</span>
+				<span class="k">break</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="k">if</span> <span class="n">count</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">skip</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+					<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cancel search. Skip to next channel...&quot;</span><span class="p">)</span>
+					<span class="n">count</span> <span class="o">-=</span> <span class="n">count</span>
+					<span class="k">continue</span> <span class="c1">#break</span>
+				<span class="k">if</span> <span class="n">count</span> <span class="o">&lt;=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">skip</span> <span class="ow">is</span> <span class="kc">False</span><span class="p">:</span>
+					<span class="n">module_not_found_lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span>
+	
+	<span class="n">module_not_found_lst</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">module_not_found_lst</span><span class="p">)</span>
+
+	
+	<span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">elem</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">module_not_found_lst</span><span class="p">):</span>
+		<span class="n">pname</span><span class="p">,</span> <span class="n">skip</span><span class="o">=</span> <span class="n">search_pip</span><span class="p">(</span><span class="n">elem</span><span class="p">,</span> <span class="n">leave_me_alone</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">pname</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+			<span class="n">pip_lst</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pname</span><span class="p">)</span>
+			<span class="k">continue</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">if</span> <span class="n">skip</span> <span class="ow">is</span> <span class="kc">True</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Cancel search. Skip to next package...&quot;</span><span class="p">)</span>
+				<span class="k">continue</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2"> not found within pip.&quot;</span><span class="p">)</span>
+
+	<span class="n">conda_lst</span> <span class="o">=</span> <span class="n">clean_list</span><span class="p">(</span><span class="n">conda_lst</span><span class="p">)</span>
+	<span class="k">if</span> <span class="n">pip_lst</span><span class="p">:</span>
+		<span class="n">pip_lst</span> <span class="o">=</span> <span class="n">clean_list</span><span class="p">(</span><span class="n">pip_lst</span><span class="p">)</span>
+
+	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;conda candidates : </span><span class="si">{</span><span class="n">conda_lst</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;pip candidates : </span><span class="si">{</span><span class="n">pip_lst</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+	<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;the rest : </span><span class="si">{</span><span class="n">module_not_found_lst</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+	<span class="n">create_env</span><span class="p">(</span><span class="n">conda_lst</span><span class="p">,</span><span class="n">pip_lst</span><span class="p">,</span><span class="n">name</span><span class="p">,</span><span class="n">channel_lst</span><span class="p">)</span></div>
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+	<span class="n">main</span><span class="p">()</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">gitcrawl-docs</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gitcrawl.html">gitcrawl package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Neda Sultova.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

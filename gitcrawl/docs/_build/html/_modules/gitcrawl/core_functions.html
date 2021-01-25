@@ -1,0 +1,380 @@
+
+<!DOCTYPE html>
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>gitcrawl.core_functions &#8212; gitcrawl-docs  documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for gitcrawl.core_functions</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">This script contains functions needed for the core functionality of gitcrawl</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">subprocess</span>
+<span class="kn">import</span> <span class="nn">yaml</span>
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">from</span> <span class="nn">tqdm</span> <span class="kn">import</span> <span class="n">tqdm</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="kn">import</span> <span class="nn">pickle</span>
+<span class="kn">from</span> <span class="nn">.helpers</span> <span class="kn">import</span> <span class="n">extract_keys</span><span class="p">,</span> <span class="n">enumerate_installation_candidates</span><span class="p">,</span> <span class="n">menu</span><span class="p">,</span> <span class="n">choose_custom_name</span>
+
+<div class="viewcode-block" id="findimports_to_dict"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.core_functions.findimports_to_dict">[docs]</a><span class="k">def</span> <span class="nf">findimports_to_dict</span><span class="p">(</span><span class="n">src_rep</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	This function executes </span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	src_rep: str | list</span>
+<span class="sd">		repository to be parsed by findimports</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	dict: </span>
+<span class="sd">		module-names found </span>
+<span class="sd">		</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">findimports</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span>
+		<span class="p">[</span><span class="s1">&#39;findimports&#39;</span><span class="p">]</span> <span class="o">+</span> <span class="n">src_rep</span><span class="p">,</span> <span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+	<span class="n">output</span> <span class="o">=</span> <span class="p">{}</span>
+	<span class="n">current_line</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span>
+	<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">findimports</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">decode</span><span class="p">(</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">splitlines</span><span class="p">():</span>
+		<span class="n">stripped</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+		<span class="c1"># omit empty lines</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+			<span class="k">continue</span>
+		<span class="c1"># line has no added spaces in front. Thus it must be a directory.</span>
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">stripped</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">line</span><span class="p">):</span>
+			<span class="c1"># remove the double colon at the end</span>
+			<span class="n">current_line</span> <span class="o">=</span> <span class="n">stripped</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+			<span class="n">output</span><span class="p">[</span><span class="n">current_line</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+			<span class="k">continue</span>
+		<span class="c1"># append package name</span>
+		<span class="c1"># only include the module name, e.g only skimage instead of skimage.filters</span>
+		<span class="n">output</span><span class="p">[</span><span class="n">current_line</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">stripped</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;.&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span>
+
+	<span class="n">output</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="nb">set</span><span class="p">(</span><span class="n">output</span><span class="p">[</span><span class="n">k</span><span class="p">])</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">output</span><span class="p">}</span>
+
+	<span class="k">return</span> <span class="n">output</span></div>
+
+<div class="viewcode-block" id="determine_disjunct_module_names"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.core_functions.determine_disjunct_module_names">[docs]</a><span class="k">def</span> <span class="nf">determine_disjunct_module_names</span><span class="p">(</span><span class="n">src_rep</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Filter the modules found by findimports in such a way that returned modules meet following criteria:</span>
+<span class="sd">	* the module should not be part of the python installation running within this environment</span>
+<span class="sd">	* the module should be external (exclude self-written modules)</span>
+<span class="sd">	</span>
+<span class="sd">	Notes:</span>
+<span class="sd">		arising problem: E.g pickle which ships with each python installation but is nowhere to be found in sys.modules if not explicitly loaded</span>
+<span class="sd">		hotfix: use python_module_index which is generated by generate_python_module_list.py </span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	src_rep : str or list</span>
+<span class="sd">		repository to be parsed by findimports</span>
+<span class="sd">		</span>
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	list:</span>
+<span class="sd">		list containing unique module-names meeting above criteria</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="c1"># findimports only allows us to find either all imports or only the internally used ones.</span>
+	<span class="c1"># but we need only the external ones</span>
+	<span class="n">all_modules</span> <span class="o">=</span> <span class="n">findimports_to_dict</span><span class="p">([</span><span class="n">src_rep</span><span class="p">])</span>
+	<span class="n">internal_modules</span> <span class="o">=</span> <span class="n">findimports_to_dict</span><span class="p">([</span><span class="s1">&#39;-N&#39;</span><span class="p">,</span> <span class="n">src_rep</span><span class="p">])</span>
+	<span class="n">external_modules</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="p">[</span> <span class="n">module</span> <span class="k">for</span> <span class="n">module</span> <span class="ow">in</span> <span class="n">all_modules</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">if</span> <span class="n">module</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">internal_modules</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">all_modules</span><span class="p">}</span>
+
+	<span class="n">external_modules_list</span> <span class="o">=</span> <span class="p">[]</span>
+	<span class="k">for</span> <span class="n">values</span> <span class="ow">in</span> <span class="n">external_modules</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+		<span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">values</span><span class="p">:</span>
+			<span class="n">external_modules_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+	<span class="n">custom_modules_lst</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">external_modules_list</span><span class="p">)</span>
+
+	<span class="c1"># Filter out python internal modules (hotfix)</span>
+	<span class="n">python_module_index_path</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)),</span> <span class="s1">&#39;python_module_index.pickle&#39;</span><span class="p">)</span>
+	<span class="n">python_modules</span> <span class="o">=</span> <span class="n">pickle</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">python_module_index_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">))</span>
+	<span class="n">disjunct_modules</span> <span class="o">=</span> <span class="p">[</span><span class="n">x</span> <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">custom_modules_lst</span> <span class="k">if</span> <span class="n">x</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">python_modules</span><span class="p">]</span>
+
+	<span class="c1">#This should be a good approximation of all external imports.</span>
+	<span class="k">return</span> <span class="n">disjunct_modules</span></div>
+	
+<div class="viewcode-block" id="search_conda_channel"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.core_functions.search_conda_channel">[docs]</a><span class="k">def</span> <span class="nf">search_conda_channel</span><span class="p">(</span><span class="n">conda_channel</span><span class="p">,</span> <span class="n">elem</span><span class="p">,</span> <span class="n">leave_me_alone</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Search package within different conda channels.</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	conda_channel : str</span>
+<span class="sd">		conda channel to be searched</span>
+<span class="sd">	elem : str</span>
+<span class="sd">		package-name to be searched</span>
+<span class="sd">	leave_me_alone : bool, optional</span>
+<span class="sd">		if True most of the interactive queries are skipped, by default False</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	str: </span>
+<span class="sd">		package-name | None</span>
+<span class="sd">	bool: </span>
+<span class="sd">		skip? True | False</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="k">try</span><span class="p">:</span>
+		<span class="c1">#This is a workaround as listening to a keyboard doesen&#39;t work on macos due to security reasons</span>
+		<span class="c1">#Running the program via sudo feels wrong</span>
+		<span class="k">if</span> <span class="n">leave_me_alone</span><span class="p">:</span>
+			<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2"> within </span><span class="si">{</span><span class="n">conda_channel</span><span class="si">}</span><span class="s2">...&quot;</span><span class="p">)</span>	
+		<span class="k">else</span><span class="p">:</span>	
+			<span class="n">cancel</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2"> within </span><span class="si">{</span><span class="n">conda_channel</span><span class="si">}</span><span class="s2">?  press [enter] | [c] to cancel: &quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="n">cancel</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Canceled search within this channel.&quot;</span><span class="p">)</span>
+				<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span>
+
+		<span class="n">cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;conda search -c </span><span class="si">{</span><span class="n">conda_channel</span><span class="si">}</span><span class="s1"> --json </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+
+		<span class="c1">#TODO find better suitable parameters if there is time, currently only the seconds make sense </span>
+		<span class="k">with</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">unit</span><span class="o">=</span><span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="n">unit_scale</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">miniters</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">mininterval</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">maxinterval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="n">elem</span><span class="p">)</span> <span class="k">as</span> <span class="n">t</span><span class="p">:</span>
+			<span class="c1">#elapsed_time = time.time() - start_time</span>
+			<span class="n">call</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span><span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+			<span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">call</span><span class="o">.</span><span class="n">stdout</span><span class="p">:</span>
+				<span class="n">t</span><span class="o">.</span><span class="n">set_description</span><span class="p">(</span><span class="s2">&quot;processing...&quot;</span><span class="p">)</span>
+				<span class="n">t</span><span class="o">.</span><span class="n">update</span><span class="p">()</span>
+				<span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
+
+		<span class="n">call</span><span class="o">.</span><span class="n">check_returncode</span><span class="p">()</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Installation candidate for </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2"> found!&quot;</span><span class="p">)</span>
+
+		<span class="n">output_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">call</span><span class="o">.</span><span class="n">stdout</span><span class="p">)</span>
+		<span class="n">output_lst</span> <span class="o">=</span> <span class="n">extract_keys</span><span class="p">(</span><span class="n">output_dict</span><span class="p">)</span>
+		<span class="n">installation_candidates</span> <span class="o">=</span> <span class="n">enumerate_installation_candidates</span><span class="p">(</span><span class="n">output_lst</span><span class="p">)</span>
+
+		<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">installation_candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+			<span class="c1"># Return only available choice</span>
+			<span class="k">return</span> <span class="n">installation_candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">True</span>
+
+		<span class="k">else</span><span class="p">:</span>
+			<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found several installation candidates for </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+			<span class="n">choice</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span><span class="n">installation_candidates</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span>
+
+			<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;choice is: </span><span class="si">{</span><span class="n">choice</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+			<span class="k">if</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Skip searching this channel...&quot;</span><span class="p">)</span>
+				<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+			<span class="k">elif</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+				<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span>
+			<span class="k">elif</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;n&quot;</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Implement adding custom package name here..&quot;</span><span class="p">)</span>
+				<span class="n">package_name</span> <span class="o">=</span> <span class="n">choose_custom_name</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span>
+				<span class="k">return</span> <span class="n">package_name</span><span class="p">,</span> <span class="kc">True</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="k">return</span> <span class="n">installation_candidates</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">choice</span><span class="p">)],</span> <span class="kc">True</span>
+
+	<span class="k">except</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">CalledProcessError</span><span class="p">:</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s1"> not found within </span><span class="si">{</span><span class="n">conda_channel</span><span class="si">}</span><span class="s1">.&#39;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">leave_me_alone</span><span class="p">:</span>
+			<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying next channel...&quot;</span><span class="p">)</span>			
+			<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="n">choice</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="s2">&quot;Do you want to insert a custom name instead? [y/n](default:no) | [c] for cancel :&quot;</span><span class="p">)</span>
+			<span class="k">if</span> <span class="n">choice</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;y&quot;</span><span class="p">:</span>
+				<span class="n">package_name</span> <span class="o">=</span> <span class="n">choose_custom_name</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span>
+				<span class="k">return</span> <span class="n">package_name</span><span class="p">,</span> <span class="kc">True</span>
+			<span class="k">elif</span> <span class="n">choice</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+				<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span>
+			<span class="k">else</span><span class="p">:</span>
+				<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Trying next channel...&quot;</span><span class="p">)</span>			
+				<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="search_pip"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.core_functions.search_pip">[docs]</a><span class="k">def</span> <span class="nf">search_pip</span><span class="p">(</span> <span class="n">elem</span><span class="p">,</span> <span class="n">leave_me_alone</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Search package within pip. </span>
+
+<span class="sd">	Notes:</span>
+<span class="sd">		This functions gets only executed if the package wasn&#39;t found in neither</span>
+<span class="sd">		of the provided conda-channels</span>
+
+<span class="sd">		This regex failed to work after pip-search was deactivated - kept here in case of future usage.</span>
+<span class="sd">		cleaned_lst = [re.split(&quot;(?P&lt;version-number&gt;\s\((\d+\.?\w*){1,3}\))&quot;, sample)[0] for sample in output]</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	conda_channel : str</span>
+<span class="sd">		conda channel to be searched</span>
+<span class="sd">	elem : str</span>
+<span class="sd">		package-name to be searched</span>
+<span class="sd">	leave_me_alone : bool, optional</span>
+<span class="sd">		if True most of the interactive queries are skipped, by default False</span>
+
+<span class="sd">	Returns</span>
+<span class="sd">	-------</span>
+<span class="sd">	str: </span>
+<span class="sd">		package-name | None</span>
+<span class="sd">	bool: </span>
+<span class="sd">		skip? True | False</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="c1">#This is a workaround as listening to a keyboard doesn&#39;t work on macos due to security reasons</span>
+	<span class="c1">#Running the program via sudo feels wrong</span>
+	<span class="k">if</span> <span class="n">leave_me_alone</span><span class="p">:</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2"> within pip...&quot;</span><span class="p">)</span>	
+	<span class="k">else</span><span class="p">:</span>	
+		<span class="n">cancel</span> <span class="o">=</span> <span class="nb">input</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Search </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2"> within pip?  press [enter] | [c] to cancel: &quot;</span><span class="p">)</span>
+		<span class="k">if</span> <span class="n">cancel</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span><span class="p">:</span>
+			<span class="c1">#print(&quot;Cancel search. Skip to next package...&quot;)</span>
+			<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span>
+
+	<span class="n">cmd</span> <span class="o">=</span> <span class="sa">f</span><span class="s1">&#39;pip_search </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">split</span><span class="p">()</span>
+	<span class="n">sp_return_code</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">check_call</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+	
+	<span class="n">sp</span> <span class="o">=</span> <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">shell</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+						<span class="n">capture_output</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">text</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+	<span class="n">output</span> <span class="o">=</span> <span class="n">sp</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()</span>
+	<span class="n">cleaned_lst</span> <span class="o">=</span> <span class="p">[</span> <span class="n">sample</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">sample</span> <span class="ow">in</span> <span class="n">output</span><span class="p">][</span><span class="mi">3</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+	<span class="n">installation_candidates</span> <span class="o">=</span> <span class="n">enumerate_installation_candidates</span><span class="p">(</span><span class="n">cleaned_lst</span><span class="p">)</span>
+
+	<span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">installation_candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+		<span class="c1"># Return only available choice</span>
+		<span class="k">return</span> <span class="n">installation_candidates</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="kc">True</span>
+
+	<span class="c1">#Why the except block failed to execute? Also a change after switching to pip_search? Currently removed</span>
+	<span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">installation_candidates</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+		<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">False</span>
+
+	<span class="k">else</span><span class="p">:</span>
+		<span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found several installation candidates for </span><span class="si">{</span><span class="n">elem</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+		<span class="n">choice</span> <span class="o">=</span> <span class="n">menu</span><span class="p">(</span><span class="n">installation_candidates</span><span class="p">,</span> <span class="n">elem</span><span class="p">)</span>
+
+		<span class="k">if</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;c&quot;</span> <span class="ow">or</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;s&quot;</span><span class="p">:</span>
+			<span class="k">return</span> <span class="kc">None</span><span class="p">,</span> <span class="kc">True</span>
+		<span class="k">elif</span> <span class="n">choice</span> <span class="o">==</span> <span class="s2">&quot;n&quot;</span><span class="p">:</span>
+			<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Implement adding custom package name here..&quot;</span><span class="p">)</span>
+			<span class="n">package_name</span> <span class="o">=</span> <span class="n">choose_custom_name</span><span class="p">(</span><span class="n">elem</span><span class="p">)</span>
+			<span class="k">return</span> <span class="n">package_name</span><span class="p">,</span> <span class="kc">True</span>
+		<span class="k">else</span><span class="p">:</span>
+			<span class="k">return</span> <span class="n">installation_candidates</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">choice</span><span class="p">)],</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="create_env"><a class="viewcode-back" href="../../gitcrawl.html#gitcrawl.core_functions.create_env">[docs]</a><span class="k">def</span> <span class="nf">create_env</span><span class="p">(</span><span class="n">conda_lst</span><span class="p">,</span> <span class="n">pip_lst</span><span class="p">,</span> <span class="n">env_name</span><span class="p">,</span> <span class="n">channel_lst</span><span class="p">):</span>
+	<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">	Creates a valid environment.yml</span>
+
+<span class="sd">	Parameters</span>
+<span class="sd">	----------</span>
+<span class="sd">	conda_lst : list</span>
+<span class="sd">		list of packages to be installed via conda</span>
+<span class="sd">	pip_lst : list</span>
+<span class="sd">		list of packages to be installed via conda</span>
+<span class="sd">	env_name : str</span>
+<span class="sd">		name of the resulting environment.yml</span>
+<span class="sd">	channel_lst : list</span>
+<span class="sd">		list of conda-channles that are to be searched</span>
+<span class="sd">	&quot;&quot;&quot;</span>
+	<span class="n">dependencies</span> <span class="o">=</span> <span class="n">conda_lst</span>
+	<span class="n">name</span> <span class="o">=</span> <span class="n">env_name</span>
+	
+	<span class="k">if</span> <span class="n">pip_lst</span><span class="p">:</span>
+		<span class="n">dependencies</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s1">&#39;pip&#39;</span><span class="p">:</span> <span class="n">pip_lst</span><span class="p">})</span>
+
+
+	<span class="n">dict_file</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;name&#39;</span><span class="p">:</span> <span class="n">env_name</span><span class="p">,</span>
+				 <span class="s1">&#39;channels&#39;</span><span class="p">:</span> <span class="n">channel_lst</span><span class="p">,</span>
+				 <span class="s1">&#39;dependencies&#39;</span><span class="p">:</span> <span class="n">dependencies</span>
+				 <span class="p">}</span>
+
+	<span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">env_name</span><span class="si">}</span><span class="s1">.yml&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+		<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Creating new environment.yml...&quot;</span><span class="p">)</span>
+		<span class="n">yaml</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">dict_file</span><span class="p">,</span> <span class="n">file</span><span class="p">,</span> <span class="n">sort_keys</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">gitcrawl-docs</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../gitcrawl.html">gitcrawl package</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Neda Sultova.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.4.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

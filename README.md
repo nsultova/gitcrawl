@@ -72,7 +72,7 @@ The manual way (if you want to tinker around):
 
 Clone the repository:
 
-`git clone addrepowhenitsonline`
+`git clone https://github.com/nsultova/gitcrawl.git`
 
 Use the provided gitcrawl-env.yml to create a conda environment:
 
