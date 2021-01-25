@@ -4,6 +4,7 @@
 * aims to ease the headache that comes with transferring conda environments
 * allows you to create a neat environments.yml for any python project you feed it
 
+[Docs](https://nsultova.github.io/gitcrawl/)
 
 ## Motivation
 Currently there is no way known to me to transfer conda environments in a non-cumbersome way across operating systems. The current commands as stated in the official docs are:
@@ -101,7 +102,7 @@ Verify that the new environment was installed correctly:
 
 The code is designed in a heavily interactive way. If you're lazy you can set the `--leave-me-alone` flag. This will make gitcrawl run trough all channels and ask you only if there are several installation candidates to choose from.
 
-*In either ways `--help` and the docs are your friends. <3*
+*In either ways `--help` and the docs are your friends. <3* [Have a look](https://nsultova.github.io/gitcrawl/)
 
 
 ## Workflow
