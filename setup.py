@@ -5,13 +5,13 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gitcrawl",
-    version="0.0.11",
+    version="0.1.1",
     author="Neda Sultova",
     author_email="n.sultova@hzdr.de",
     description="A small package for creating os-agnostic conda environment.yml files",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://gitlab.hzdr.de/sultov65/gitcrawl",
+    url="https://github.com/nsultova/gitcrawl",
     packages=setuptools.find_packages(),
     package_data={"gitcrawl": ["python_module_index.pickle", "module-names.txt"]},
     install_requires=[
