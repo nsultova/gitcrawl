@@ -51,7 +51,7 @@ Above behavior makes transferring conda environments across systems often quite 
 
 ## Gitcrawl
 
-I wrote gitcrawl out of the desire to make live a bit easier for my colleagues and me, as we often exchange/test/experiment with various code. 
+I wrote gitcrawl out of the desire to make life a bit easier for my colleagues and me, as we often exchange/test/experiment with various code. 
 
 Gitcrawl offers another handy feature: You can clone any python repository and it will create a environment.yml for you, thus saving you a lot of time and helping you keep your system neat and tidy when you just simply want to test some code. 
 (Especially nice, if not even a requirements.txt is provided)
