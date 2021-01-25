@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'gitcrawl-docs'
+project = 'gitcrawl'
 copyright = '2021, Neda Sultova'
 author = 'Neda Sultova'
 
