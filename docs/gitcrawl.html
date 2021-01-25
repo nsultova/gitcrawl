@@ -14,7 +14,7 @@
     <script src="_static/doctools.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Welcome to gitcrawl-docs’s documentation!" href="index.html" />
+    <link rel="prev" title="Welcome to gitcrawl’s documentation!" href="index.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -37,7 +37,7 @@
 <h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
 </div>
 <div class="section" id="module-gitcrawl.core_functions">
-<span id="gitcrawl-core-functions-module"></span><h2>gitcrawl.core_functions module<a class="headerlink" href="#module-gitcrawl.core_functions" title="Permalink to this headline">¶</a></h2>
+<span id="gitcrawl-core-functions"></span><h2>gitcrawl.core_functions<a class="headerlink" href="#module-gitcrawl.core_functions" title="Permalink to this headline">¶</a></h2>
 <p>This script contains functions needed for the core functionality of gitcrawl</p>
 <dl class="py function">
 <dt id="gitcrawl.core_functions.create_env">
@@ -49,7 +49,7 @@
 <li><p><strong>conda_lst</strong> (<em>list</em>) – list of packages to be installed via conda</p></li>
 <li><p><strong>pip_lst</strong> (<em>list</em>) – list of packages to be installed via conda</p></li>
 <li><p><strong>env_name</strong> (<em>str</em>) – name of the resulting environment.yml</p></li>
-<li><p><strong>channel_lst</strong> (<em>list</em>) – list of conda-channles that are to be searched</p></li>
+<li><p><strong>channel_lst</strong> (<em>list</em>) – list of conda-channels that are to be searched</p></li>
 </ul>
 </dd>
 </dl>
@@ -145,7 +145,7 @@ cleaned_lst = [re.split(“(?P&lt;version-number&gt;s((d+.?w*){1,3}))”, sample
 
 </div>
 <div class="section" id="module-gitcrawl.deprecated">
-<span id="gitcrawl-deprecated-module"></span><h2>gitcrawl.deprecated module<a class="headerlink" href="#module-gitcrawl.deprecated" title="Permalink to this headline">¶</a></h2>
+<span id="gitcrawl-deprecated"></span><h2>gitcrawl.deprecated<a class="headerlink" href="#module-gitcrawl.deprecated" title="Permalink to this headline">¶</a></h2>
 <p>Contains code no longer used but kept for review/further reuse
 — imports need to be re-added —</p>
 <dl class="py function">
@@ -164,7 +164,7 @@ Links to tool : <a class="reference external" href="https://github.com/mgedmin/f
 
 </div>
 <div class="section" id="module-gitcrawl.generate_python_module_list">
-<span id="gitcrawl-generate-python-module-list-module"></span><h2>gitcrawl.generate_python_module_list module<a class="headerlink" href="#module-gitcrawl.generate_python_module_list" title="Permalink to this headline">¶</a></h2>
+<span id="gitcrawl-generate-python-module-list-script"></span><h2>gitcrawl.generate_python_module_list script<a class="headerlink" href="#module-gitcrawl.generate_python_module_list" title="Permalink to this headline">¶</a></h2>
 <p>This script needs to be executed only when a new python version has appeared.
 chmod +x has been set</p>
 <p>Execution:
@@ -183,7 +183,7 @@ This list is used by determine_disjunct_module_names(src_rep) to compare against
 
 </div>
 <div class="section" id="module-gitcrawl.gitcrawl">
-<span id="gitcrawl-gitcrawl-module"></span><h2>gitcrawl.gitcrawl module<a class="headerlink" href="#module-gitcrawl.gitcrawl" title="Permalink to this headline">¶</a></h2>
+<span id="gitcrawl-gitcrawl"></span><h2>gitcrawl.gitcrawl<a class="headerlink" href="#module-gitcrawl.gitcrawl" title="Permalink to this headline">¶</a></h2>
 <dl class="py function">
 <dt id="gitcrawl.gitcrawl.main">
 <code class="sig-prename descclassname">gitcrawl.gitcrawl.</code><code class="sig-name descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/gitcrawl/gitcrawl.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gitcrawl.gitcrawl.main" title="Permalink to this definition">¶</a></dt>
@@ -191,8 +191,8 @@ This list is used by determine_disjunct_module_names(src_rep) to compare against
 
 </div>
 <div class="section" id="module-gitcrawl.helpers">
-<span id="gitcrawl-helpers-module"></span><h2>gitcrawl.helpers module<a class="headerlink" href="#module-gitcrawl.helpers" title="Permalink to this headline">¶</a></h2>
-<p>Skript containing various additional helper functions</p>
+<span id="gitcrawl-helpers"></span><h2>gitcrawl.helpers<a class="headerlink" href="#module-gitcrawl.helpers" title="Permalink to this headline">¶</a></h2>
+<p>Script containing various additional helper functions</p>
 <dl class="py function">
 <dt id="gitcrawl.helpers.choose_custom_name">
 <code class="sig-prename descclassname">gitcrawl.helpers.</code><code class="sig-name descname">choose_custom_name</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">elem</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/gitcrawl/helpers.html#choose_custom_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#gitcrawl.helpers.choose_custom_name" title="Permalink to this definition">¶</a></dt>
@@ -371,9 +371,6 @@ module names as and package names as described in:
 </dd></dl>
 
 </div>
-<div class="section" id="module-gitcrawl">
-<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-gitcrawl" title="Permalink to this headline">¶</a></h2>
-</div>
 </div>
 
 
@@ -397,12 +394,11 @@ module names as and package names as described in:
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">gitcrawl package</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#submodules">Submodules</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.core_functions">gitcrawl.core_functions module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.deprecated">gitcrawl.deprecated module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.generate_python_module_list">gitcrawl.generate_python_module_list module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.gitcrawl">gitcrawl.gitcrawl module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.helpers">gitcrawl.helpers module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl">Module contents</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.core_functions">gitcrawl.core_functions</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.deprecated">gitcrawl.deprecated</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.generate_python_module_list">gitcrawl.generate_python_module_list script</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.gitcrawl">gitcrawl.gitcrawl</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-gitcrawl.helpers">gitcrawl.helpers</a></li>
 </ul>
 </li>
 </ul>
@@ -411,7 +407,7 @@ module names as and package names as described in:
 <h3>Related Topics</h3>
 <ul>
   <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">Welcome to gitcrawl-docs’s documentation!</a></li>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to gitcrawl’s documentation!</a></li>
   </ul></li>
 </ul>
 </div>
