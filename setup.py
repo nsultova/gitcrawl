@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gitcrawl",
-    version="0.1.1",
+    version="0.1.2",
     author="Neda Sultova",
     author_email="n.sultova@hzdr.de",
     description="A small package for creating os-agnostic conda environment.yml files",
