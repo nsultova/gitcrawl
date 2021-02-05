@@ -3,5 +3,5 @@ tqdm
 requests
 PyYAML
 requirements-parser
-pip-search
+pip-search>=0.0.6
 findimports

@@ -14,4 +14,4 @@ dependencies:
 - yaml
 - pip:
   - findimports
-  - pip-search
+  - pip-search>=0.0.6

@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="gitcrawl",
-    version="0.1.2",
+    version="0.1.3",
     author="Neda Sultova",
     author_email="n.sultova@hzdr.de",
     description="A small package for creating os-agnostic conda environment.yml files",
@@ -20,7 +20,7 @@ setuptools.setup(
 		"requests",
 		"PyYAML",
 		"requirements-parser",
-		"pip-search",
+		"pip-search>=0.0.6",
 		"findimports"
     ],
     entry_points={
