@@ -10,12 +10,9 @@
 Currently there is no way known to me to transfer conda environments in a non-cumbersome way across operating systems. The current commands as stated in the official docs are:
 
 ```
-conda env export > environment.yml 
-
-conda env export --no-builds > environment.yml 
-
-conda env export --from-history.yml
-
+conda env export > environment.yml
+conda env export --no-builds > environment.yml
+conda env export --from-history > environment.yml
 ```
 
 Example:
@@ -114,6 +111,6 @@ The code is designed in a heavily interactive way. If you're lazy you can set th
 This code relies on:
 * [findimports](https://github.com/mgedmin/findimports)
 * [requirements-parser](https://github.com/davidfischer/requirements-parser)
-* [pip_search](https://pypi.org/project/pip-search/#files) ..as for now pip-search is 
+* [pip_search](https://pypi.org/project/pip-search/#files) as the builtin `pip-search` is deprecated
 
 Make sure you have them installed!
